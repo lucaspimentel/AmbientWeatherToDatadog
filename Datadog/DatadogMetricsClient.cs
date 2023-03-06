@@ -50,6 +50,7 @@ public sealed class DatadogMetricsClient : IDisposable
 
             AddSeries(seriesList, timestampSeconds, "pws.tempf", data.OutdoorTemperatureFahrenheit, SeriesType.Gauge, "F", tags);
             AddSeries(seriesList, timestampSeconds, "pws.feelsLike", data.OutdoorFeelsLikeTemperatureFahrenheit, SeriesType.Gauge, "F", tags);
+            AddSeries(seriesList, timestampSeconds, "pws.dewPoint", data.DewPointFahrenheit, SeriesType.Gauge, "F", tags);
             AddSeries(seriesList, timestampSeconds, "pws.windspeedmph", data.WindSpeedMph, SeriesType.Gauge, "mph", tags);
             AddSeries(seriesList, timestampSeconds, "pws.winddir", data.WindDirection, SeriesType.Gauge, null, tags);
             AddSeries(seriesList, timestampSeconds, "pws.windgustmph", data.WindGustMph, SeriesType.Gauge, "mph", tags);
@@ -57,6 +58,7 @@ public sealed class DatadogMetricsClient : IDisposable
             AddSeries(seriesList, timestampSeconds, "pws.baromabsin", data.AbsoluteBarometricPressure, SeriesType.Gauge, "inHG", tags);
             AddSeries(seriesList, timestampSeconds, "pws.baromrelin", data.RelativeBarometricPressure, SeriesType.Gauge, "inHG", tags);
             AddSeries(seriesList, timestampSeconds, "pws.humidity", data.OutdoorHumidity, SeriesType.Gauge, null, tags);
+            AddSeries(seriesList, timestampSeconds, "pws.solarradiation", data.SolarRadiation, SeriesType.Gauge, "W/m^2", tags);
 
             var metrics = new MetricsPayload { Series = seriesList };
             await Post(metrics, cancellationToken);
