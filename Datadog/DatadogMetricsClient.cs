@@ -37,7 +37,7 @@ public sealed class DatadogMetricsClient : IDisposable
             }
 
             // POSIX milliseconds to seconds
-            var tempstampSeconds = ms / 1_000;
+            var timestampSeconds = ms / 1_000;
 
             var tags = new List<string>
                        {
@@ -48,72 +48,45 @@ public sealed class DatadogMetricsClient : IDisposable
 
             var seriesList = new List<Series>(1);
 
-            if (data.OutdoorTemperatureFahrenheit is { } temp)
-            {
-                var series = new Series
-                             {
-                                 MetricName = @"pws.tempf",
-                                 Type = SeriesType.Gauge,
-                                 Unit = "F",
-                                 Points = new List<Point>
-                                          {
-                                              new()
-                                              {
-                                                  Timestamp = tempstampSeconds,
-                                                  Value = temp
-                                              }
-                                          },
-                                 Tags = tags
-                             };
-
-                seriesList.Add(series);
-            }
-
-            if (data.WindSpeedMph is { } windSpeed)
-            {
-                var series = new Series
-                             {
-                                 MetricName = @"pws.windspeedmph",
-                                 Type = SeriesType.Gauge,
-                                 Unit = "mph",
-                                 Points = new List<Point>
-                                          {
-                                              new()
-                                              {
-                                                  Timestamp = tempstampSeconds,
-                                                  Value = windSpeed
-                                              }
-                                          },
-                                 Tags = tags
-                             };
-
-                seriesList.Add(series);
-            }
-
-            if (data.WindGustMph is { } windGust)
-            {
-                var series = new Series
-                             {
-                                 MetricName = @"pws.windgustmph",
-                                 Type = SeriesType.Gauge,
-                                 Unit = "mph",
-                                 Points = new List<Point>
-                                          {
-                                              new()
-                                              {
-                                                  Timestamp = tempstampSeconds,
-                                                  Value = windGust
-                                              }
-                                          },
-                                 Tags = tags
-                             };
-
-                seriesList.Add(series);
-            }
+            AddSeries(seriesList, timestampSeconds, "pws.tempf", data.OutdoorTemperatureFahrenheit, SeriesType.Gauge, "F", tags);
+            AddSeries(seriesList, timestampSeconds, "pws.feelsLike", data.OutdoorFeelsLikeTemperatureFahrenheit, SeriesType.Gauge, "F", tags);
+            AddSeries(seriesList, timestampSeconds, "pws.windspeedmph", data.WindSpeedMph, SeriesType.Gauge, "mph", tags);
+            AddSeries(seriesList, timestampSeconds, "pws.winddir", data.WindDirection, SeriesType.Gauge, null, tags);
+            AddSeries(seriesList, timestampSeconds, "pws.windgustmph", data.WindGustMph, SeriesType.Gauge, "mph", tags);
+            AddSeries(seriesList, timestampSeconds, "pws.maxdailygust", data.MaxDailyGust, SeriesType.Gauge, "mph", tags);
+            AddSeries(seriesList, timestampSeconds, "pws.baromabsin", data.AbsoluteBarometricPressure, SeriesType.Gauge, "inHG", tags);
+            AddSeries(seriesList, timestampSeconds, "pws.baromrelin", data.RelativeBarometricPressure, SeriesType.Gauge, "inHG", tags);
+            AddSeries(seriesList, timestampSeconds, "pws.humidity", data.OutdoorHumidity, SeriesType.Gauge, null, tags);
 
             var metrics = new MetricsPayload { Series = seriesList };
             await Post(metrics, cancellationToken);
         }
+    }
+
+    private static void AddSeries(List<Series> seriesList, long timestamp, string name, double? value, SeriesType type, string? unit, List<string> tags)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        var series = new Series
+                     {
+                         MetricName = name,
+                         Type = type,
+                         Unit = unit,
+                         Points = new List<Point>
+                                  {
+                                      new()
+                                      {
+                                          Timestamp = timestamp,
+                                          Value = (double)value
+                                      }
+                                  },
+                         Tags = tags
+                     };
+
+        seriesList.Add(series);
     }
 
     public async Task Post(MetricsPayload payload, CancellationToken cancellationToken = default)
