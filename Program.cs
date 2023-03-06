@@ -10,6 +10,7 @@ public static class Program
     public static async Task Main()
     {
         Log.Logger = new LoggerConfiguration()
+                    .MinimumLevel.Debug()
                     .Enrich.FromLogContext()
                     .WriteTo.Console()
                     .CreateLogger();
@@ -24,7 +25,7 @@ public static class Program
             });
 
         using var client = new AmbientWeatherRealtimeClient(channel.Writer, Log.Logger, Constants.AmbientWeatherApplicationKey, Constants.AmbientWeatherApiKey);
-        await client.ConnectAsync(CancellationToken.None);
+        await client.ConnectAsync();
 
         using var datadogClient = new DatadogMetricsClient(channel.Reader, Log.Logger);
         var cancellationTokenSource = new CancellationTokenSource();

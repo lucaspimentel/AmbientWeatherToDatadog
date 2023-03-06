@@ -1,5 +1,6 @@
 ﻿using System.Threading.Channels;
 using Serilog;
+using Serilog.Events;
 using SocketIOClient;
 
 namespace AmbientWeatherToDatadog.AmbientWeather.Realtime;
@@ -15,9 +16,13 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
     private readonly string _apiKey;
     private readonly SocketIO _client;
     private readonly Dictionary<string, string> _deviceNames = new(1);
+    private readonly EventHandler _onConnectedHandler;
+    private readonly EventHandler<string> _onDisconnectedHandler;
 
     public AmbientWeatherRealtimeClient(ChannelWriter<DeviceMetrics> channelWriter, ILogger logger, string applicationKey, string apiKey)
     {
+        logger.Debug("Initializing {Type}", typeof(AmbientWeatherRealtimeClient).FullName);
+
         _channelWriter = channelWriter;
         _logger = logger;
         _apiKey = apiKey;
@@ -37,37 +42,22 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
                 ReconnectionDelayMax = 30000,
             });
 
+        _onConnectedHandler = async (_, _) => await OnConnected();
+        _onDisconnectedHandler = (_, message) => OnDisconnected(message);
+
+        client.OnConnected += _onConnectedHandler;
+        client.OnDisconnected += _onDisconnectedHandler;
+
         client.On("subscribed", OnSubscribed);
         client.On("data", OnData);
-        client.OnConnected += OnConnected;
-        client.OnDisconnected += OnDisconnected;
 
         _client = client;
     }
 
-    public async Task ConnectAsync(CancellationToken cancellationToken = default)
+    public async Task ConnectAsync()
     {
-        const string connectCommand = "connect";
-        const string subscribeCommand = "subscribe";
-
-        _logger.Information("Connecting to Ambient Weather server at {Url}", BaseUrl);
-
+        _logger.Information("Ambient Weather: Connecting to {Url}", BaseUrl);
         await _client.ConnectAsync();
-
-        _logger.Information("Sending {Command} command", connectCommand);
-
-        await _client.EmitAsync(
-            connectCommand,
-            cancellationToken,
-            response => _logger.Information("Response: {Response}", response));
-
-        _logger.Information("Sending {Command} command", subscribeCommand);
-
-        await _client.EmitAsync(
-            subscribeCommand,
-            cancellationToken,
-            response => _logger.Information("Response: {Response}", response),
-            new ApiKeys(_apiKey));
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
@@ -78,34 +68,33 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
         _client.Off("subscribed");
         _client.Off("data");
 
-        _logger.Information("Sending {Command} command", unsubscribeCommand);
+        _logger.Information("Ambient Weather: sending {Command} command", unsubscribeCommand);
+        await _client.EmitAsync(unsubscribeCommand, cancellationToken, new ApiKeys(_apiKey));
 
-        await _client.EmitAsync(
-            unsubscribeCommand,
-            cancellationToken,
-            response => _logger.Information("Response: {Response}", response),
-            new ApiKeys(_apiKey));
+        _logger.Information("Ambient Weather: sending {Command} command", disconnectCommand);
+        await _client.EmitAsync(disconnectCommand, cancellationToken);
 
-        _logger.Information("Sending {Command} command", disconnectCommand);
-
-        await _client.EmitAsync(
-            disconnectCommand,
-            cancellationToken,
-            response => _logger.Information("Response: {Response}", response));
-
-        _logger.Information("Disconnecting from Ambient Weather server");
-
+        _logger.Information("Ambient Weather: disconnecting");
         await _client.DisconnectAsync();
     }
 
-    private void OnConnected(object? sender, EventArgs e)
+    private async Task OnConnected()
     {
         _logger.Information("Connected");
+
+        const string connectCommand = "connect";
+        const string subscribeCommand = "subscribe";
+
+        _logger.Information("Ambient Weather: sending {Command} command", connectCommand);
+        await _client.EmitAsync(connectCommand);
+
+        _logger.Information("Ambient Weather: sending {Command} command", subscribeCommand);
+        await _client.EmitAsync(subscribeCommand, new ApiKeys(_apiKey));
     }
 
-    private void OnDisconnected(object? sender, string e)
+    private void OnDisconnected(string message)
     {
-        _logger.Information("Disconnected");
+        _logger.Information("Ambient Weather: disconnected, {Message}", message);
     }
 
     private void OnSubscribed(SocketIOResponse response)
@@ -113,8 +102,14 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
         var value = response.GetValue<Root>();
         var userDevice = value.Devices?.FirstOrDefault();
 
-        _logger.Information("Subscription change: {Method} {Name} ({Mac})", value.Method, userDevice?.Info?.Name, userDevice?.MacAddress);
-        _logger.Information("Subscription data: {Data}", response.GetValue());
+        if (_logger.IsEnabled(LogEventLevel.Debug))
+        {
+            _logger.Debug("Ambient Weather: subscription message received, {Data}", response.GetValue());
+        }
+        else if (_logger.IsEnabled(LogEventLevel.Information))
+        {
+            _logger.Information("Ambient Weather: subscription message received, {Method} {Name} ({Mac})", value.Method, userDevice?.Info?.Name, userDevice?.MacAddress);
+        }
 
         if (userDevice is { MacAddress: { } mac, Info.Name: { } name, LastData: { } device })
         {
@@ -125,7 +120,14 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
 
     private void OnData(SocketIOResponse response)
     {
-        _logger.Information("Data received: {Data}", response.GetValue());
+        if (_logger.IsEnabled(LogEventLevel.Debug))
+        {
+            _logger.Debug("Ambient Weather: data received, {Data}", response.GetValue());
+        }
+        else if (_logger.IsEnabled(LogEventLevel.Information))
+        {
+            _logger.Information("Ambient Weather: data received");
+        }
 
         var device = response.GetValue<Device>();
 
@@ -138,12 +140,18 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
 
     public void Dispose()
     {
+        if (_logger != null!)
+        {
+            _logger.Debug("Disposing {Type}", typeof(AmbientWeatherRealtimeClient).FullName);
+        }
+
         if (_client != null!)
         {
             _client.Off("subscribed");
             _client.Off("data");
-            _client.OnConnected -= OnConnected;
-            _client.OnDisconnected -= OnDisconnected;
+
+            _client.OnConnected -= _onConnectedHandler;
+            _client.OnDisconnected -= _onDisconnectedHandler;
 
             _client.Dispose();
         }
