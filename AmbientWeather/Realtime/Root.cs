@@ -21,7 +21,7 @@ public sealed record Root
     /// The returned event type
     /// </summary>
     [JsonPropertyName("method")]
-    public string Method { get; init; }
+    public string? Method { get; init; }
 
     // TODO: Need to add an "error" field to store the error message that the Realtime API returns if API or Application keys are invalid, null, or in the incorrect serialized format
 }
