@@ -11,14 +11,14 @@ public sealed class DatadogMetricsClient : IDisposable
     private readonly ILogger _logger;
     private readonly HttpClient _client = new();
 
-    public DatadogMetricsClient(ChannelReader<DeviceMetrics> channelReader, ILogger logger)
+    public DatadogMetricsClient(ChannelReader<DeviceMetrics> channelReader, ILogger logger, string apiKey)
     {
         logger.Debug("Initializing {Type}", typeof(DatadogMetricsClient).FullName);
 
         _channelReader = channelReader;
         _logger = logger;
 
-        _client.DefaultRequestHeaders.Add("DD-API-KEY", Constants.DatadogApiKey);
+        _client.DefaultRequestHeaders.Add("DD-API-KEY", apiKey);
     }
 
     public async Task Start(CancellationToken cancellationToken = default)

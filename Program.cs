@@ -24,10 +24,14 @@ public static class Program
                 AllowSynchronousContinuations = true,
             });
 
-        using var client = new AmbientWeatherRealtimeClient(channel.Writer, Log.Logger, Constants.AmbientWeatherApplicationKey, Constants.AmbientWeatherApiKey);
+        var ambientWeatherApplicationKey = Environment.GetEnvironmentVariable("AW_APP_KEY") ?? "";
+        var ambientWeatherApiKey = Environment.GetEnvironmentVariable("AW_API_KEY") ?? "";
+        var datadogApiKey = Environment.GetEnvironmentVariable("DD_API_KEY") ?? "";
+
+        using var client = new AmbientWeatherRealtimeClient(channel.Writer, Log.Logger, ambientWeatherApplicationKey, ambientWeatherApiKey);
         await client.ConnectAsync();
 
-        using var datadogClient = new DatadogMetricsClient(channel.Reader, Log.Logger);
+        using var datadogClient = new DatadogMetricsClient(channel.Reader, Log.Logger, datadogApiKey);
         var cancellationTokenSource = new CancellationTokenSource();
         Task datadogTask = datadogClient.Start(cancellationTokenSource.Token);
 
