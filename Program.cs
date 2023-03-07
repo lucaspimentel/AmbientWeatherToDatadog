@@ -28,6 +28,14 @@ public static class Program
         var ambientWeatherApiKey = Environment.GetEnvironmentVariable("AW_API_KEY") ?? "";
         var datadogApiKey = Environment.GetEnvironmentVariable("DD_API_KEY") ?? "";
 
+        if (string.IsNullOrEmpty(ambientWeatherApplicationKey) ||
+            string.IsNullOrEmpty(ambientWeatherApiKey) ||
+            string.IsNullOrEmpty(datadogApiKey))
+        {
+            Log.Warning("Missing one of the following required env vars: {EnvVarNames}", "AW_APP_KEY, AW_API_KEY, DD_API_KEY");
+            return;
+        }
+
         using var client = new AmbientWeatherRealtimeClient(channel.Writer, Log.Logger, ambientWeatherApplicationKey, ambientWeatherApiKey);
         await client.ConnectAsync();
 
@@ -35,8 +43,7 @@ public static class Program
         var cancellationTokenSource = new CancellationTokenSource();
         Task datadogTask = datadogClient.Start(cancellationTokenSource.Token);
 
-        Console.WriteLine("Press [ENTER] to stop.");
-        Console.ReadLine();
+        await Task.Delay(-1);
 
         cancellationTokenSource.Cancel();
 
