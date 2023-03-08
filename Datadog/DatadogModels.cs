@@ -7,7 +7,7 @@ namespace AmbientWeatherToDatadog.Datadog;
 public sealed class MetricsPayload
 {
     [JsonPropertyName("series")]
-    public List<Series> Series { get; set; }
+    public IEnumerable<Series> Series { get; set; }
 }
 
 public sealed class Series
