@@ -4,13 +4,13 @@ namespace AmbientWeatherToDatadog.Datadog;
 
 #nullable disable
 
-public class MetricsPayload
+public sealed class MetricsPayload
 {
     [JsonPropertyName("series")]
     public List<Series> Series { get; set; }
 }
 
-public class Series
+public sealed class Series
 {
     [JsonPropertyName("metric")]
     public string MetricName { get; set; }
@@ -32,7 +32,7 @@ public class Series
     public List<string> Tags { get; set; }
 }
 
-public class Point
+public sealed class Point
 {
     // Timestamps should be in POSIX time in seconds,
     // and cannot be more than ten minutes in the future or more than one hour in the past.
