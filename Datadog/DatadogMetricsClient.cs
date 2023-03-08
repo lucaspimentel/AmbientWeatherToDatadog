@@ -52,7 +52,7 @@ public sealed class DatadogMetricsClient : IDisposable
                                $"location.mac:{deviceMetrics.DeviceMac}"
                            };
 
-                var seriesList = new Series[]
+                var seriesList = new[]
                                  {
                                      // temp
                                      CreateSeries(timestampSeconds, "pws.tempf", data.OutdoorTemperatureFahrenheit, SeriesType.Gauge, "℉", tags),
@@ -87,7 +87,7 @@ public sealed class DatadogMetricsClient : IDisposable
                                      CreateSeries(timestampSeconds, "pws.battout", data.BatteryLowIndicator, SeriesType.Gauge, unit: null, tags), // 1 = good, 0 = bad
                                  };
 
-                var metrics = new MetricsPayload { Series = seriesList };
+                var metrics = new MetricsPayload { Series = seriesList.Where(s => s != null) };
                 await Post(metrics, cancellationToken);
             }
         }
@@ -108,23 +108,21 @@ public sealed class DatadogMetricsClient : IDisposable
             return null;
         }
 
-        var series = new Series
-                     {
-                         MetricName = name,
-                         Type = type,
-                         Unit = unit,
-                         Points = new List<Point>
-                                  {
-                                      new()
-                                      {
-                                          Timestamp = timestamp,
-                                          Value = (double)value
-                                      }
-                                  },
-                         Tags = tags
-                     };
-
-        return series;
+        return new Series
+               {
+                   MetricName = name,
+                   Type = type,
+                   Unit = unit,
+                   Points = new List<Point>
+                            {
+                                new()
+                                {
+                                    Timestamp = timestamp,
+                                    Value = (double)value
+                                }
+                            },
+                   Tags = tags
+               };
     }
 
     private async Task Post(MetricsPayload payload, CancellationToken cancellationToken = default)
