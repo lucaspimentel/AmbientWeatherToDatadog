@@ -67,7 +67,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            hub.docker.com/${{ env.IMAGE_NAME }}
+            docker.io/${{ env.IMAGE_NAME }}
             ghcr.io/${{ env.IMAGE_NAME }}
 
       # Build and push Docker image with Buildx (don't push on PR)
