@@ -32,7 +32,7 @@ public static class Program
             string.IsNullOrEmpty(ambientWeatherApiKey) ||
             string.IsNullOrEmpty(datadogApiKey))
         {
-            Log.Warning("Missing one of the following required env vars: {EnvVarNames}", "AW_APP_KEY, AW_API_KEY, DD_API_KEY");
+            Log.Warning("Missing one of the following required env vars: AW_APP_KEY, AW_API_KEY, DD_API_KEY");
             return;
         }
 

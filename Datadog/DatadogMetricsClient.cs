@@ -137,10 +137,13 @@ public sealed class DatadogMetricsClient : IDisposable
         try
         {
             HttpResponseMessage response = await _client.PostAsync("https://api.datadoghq.com/api/v2/series", requestContent, cancellationToken);
-            _logger.Debug("Datadog client: response status code is {StatusName} ({StatusCode})", response.StatusCode, (int)response.StatusCode);
-
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.Debug("Datadog client: response content is {ResponseContent}", responseContent);
+
+            _logger.Debug(
+                "Datadog client: response status code is {StatusName} ({StatusCode}), content is {ResponseContent}",
+                response.StatusCode,
+                (int)response.StatusCode,
+                responseContent);
 
             response.EnsureSuccessStatusCode();
             _logger.Information("Datadog client: metrics sent successfully");

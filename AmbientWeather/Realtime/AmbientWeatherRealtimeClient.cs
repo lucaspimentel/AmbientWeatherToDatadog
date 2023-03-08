@@ -56,7 +56,7 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
 
     public async Task ConnectAsync()
     {
-        _logger.Information("Ambient Weather: Connecting to {Url}", BaseUrl);
+        _logger.Information("Ambient Weather: connecting to {Url}", BaseUrl);
         await _client.ConnectAsync();
     }
 
@@ -65,13 +65,16 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
         const string disconnectCommand = "disconnect";
         const string unsubscribeCommand = "unsubscribe";
 
+        _logger.Information("Ambient Weather: unsubscribing");
+        await _client.DisconnectAsync();
+
         _client.Off("subscribed");
         _client.Off("data");
 
-        _logger.Information("Ambient Weather: sending {Command} command", unsubscribeCommand);
+        _logger.Debug("Ambient Weather: sending {Command} command", unsubscribeCommand);
         await _client.EmitAsync(unsubscribeCommand, cancellationToken, new ApiKeys(_apiKey));
 
-        _logger.Information("Ambient Weather: sending {Command} command", disconnectCommand);
+        _logger.Debug("Ambient Weather: sending {Command} command", disconnectCommand);
         await _client.EmitAsync(disconnectCommand, cancellationToken);
 
         _logger.Information("Ambient Weather: disconnecting");
@@ -80,15 +83,15 @@ public sealed class AmbientWeatherRealtimeClient : IDisposable
 
     private async Task OnConnected()
     {
-        _logger.Information("Connected");
+        _logger.Information("Ambient Weather: connected, subcribing to data messages");
 
         const string connectCommand = "connect";
         const string subscribeCommand = "subscribe";
 
-        _logger.Information("Ambient Weather: sending {Command} command", connectCommand);
+        _logger.Debug("Ambient Weather: sending {Command} command", connectCommand);
         await _client.EmitAsync(connectCommand);
 
-        _logger.Information("Ambient Weather: sending {Command} command", subscribeCommand);
+        _logger.Debug("Ambient Weather: sending {Command} command", subscribeCommand);
         await _client.EmitAsync(subscribeCommand, new ApiKeys(_apiKey));
     }
 
