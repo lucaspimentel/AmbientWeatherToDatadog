@@ -2,6 +2,7 @@
 using AmbientWeatherToDatadog.AmbientWeather.Realtime;
 using AmbientWeatherToDatadog.Datadog;
 using Serilog;
+using Serilog.Events;
 
 namespace AmbientWeatherToDatadog;
 
@@ -9,11 +10,16 @@ public static class Program
 {
     public static async Task Main()
     {
+        bool debug = Environment.GetEnvironmentVariable("AW_DEBUG") == "1";
+        LogEventLevel logEventLevel = debug ? LogEventLevel.Debug : LogEventLevel.Information;
+
         Log.Logger = new LoggerConfiguration()
-                    .MinimumLevel.Debug()
+                    .MinimumLevel.Is(logEventLevel)
                     .Enrich.FromLogContext()
                     .WriteTo.Console()
                     .CreateLogger();
+
+        Log.Information("Starting... AW_DEBUG={Debug}", debug);
 
         var channel = Channel.CreateBounded<DeviceMetrics>(
             new BoundedChannelOptions(capacity: 5)
